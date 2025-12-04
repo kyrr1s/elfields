@@ -33,6 +33,7 @@ python elfields.py --data file.elf
 python elfields.py -a -w deadbeef0123456789abcdef012345 file.elf
 python elfields.py --data -w 01 file.elf
 python elfields.py -a -r 16 file.elf
+python elfields.py --hash=md5 file.elf
 ```
 
 ### Options
@@ -44,6 +45,7 @@ python elfields.py -a -r 16 file.elf
 -t, --text            Output in text format (default)
 -x, --hex             Output in hex format
 -n, --no-modify       Don't modify file, just show what would be done
+-H, --hash            Show hash of the unused bytes
 ```
 
 ## Research

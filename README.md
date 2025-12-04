@@ -1,7 +1,6 @@
 # ELF Field Manipulation Tool
 
-A utility for modifying or extracting data from unused fields of ELF file headers.
-Supports both C and Python implementations (I just practiced C and Python).
+A small script for modifying or extracting data from unused fields of ELF file headers.
 
 ## Features
 
@@ -22,72 +21,6 @@ Supports both C and Python implementations (I just practiced C and Python).
   - `e_shnum` (number of section headers)
   - `e_shstrndx` (section header string table index)
 
-## C Implementation
-
-### Building
-
-```bash
-make
-```
-
-### Installation
-
-```bash
-sudo make install
-```
-
-### Usage
-
-```bash
-# Read all fields (24 bytes)
-elfields -a file.elf
-
-# Read specific field
-elfields --data file.elf
-
-# Write to all fields
-elfields -a -w deadbeef0123456789abcdef012345 file.elf
-
-# Write to specific field
-elfields --data -w 01 file.elf
-
-# Preview changes without modifying file
-elfields -n --data -w 02 file.elf
-
-# Binary output
-elfields -b --pad file.elf
-```
-
-### Options
-
-```text
--h, --help            Show help message
--a, --all             Work with all fields (24 bytes total)
--w, --write <data>    Write data (hex string)
--x, --hex             Output in hex format (default)
--b, --binary          Output in binary format
--n, --no-modify       Don't modify file, just show what would be done
-```
-
-### Individual fields
-
-Use --fieldname for individual field operations:
-```text
---class           EI_CLASS (byte order) (1 byte)
---data            EI_DATA (data encoding) (1 byte)
---ident_version   EI_VERSION (ident version) (1 byte)
---version         e_version (object file version) (4 bytes)
---pad             EI_PAD (padding bytes) (7 bytes)
---osabi           EI_OSABI (OS/ABI) (1 byte)
---abiversion      EI_ABIVERSION (ABI version) (1 byte)
---ehsize          e_ehsize (ELF header size) (2 bytes)
---shentsize       e_shentsize (section header size) (2 bytes)
---shnum           e_shnum (number of section headers) (2 bytes)
---shstrndx        e_shstrndx (section header string table index) (2 bytes)
-```
-
-## Python Implementation
-
 ### Requirements
 ```bash
 pip install pyelftools
@@ -104,8 +37,15 @@ python elfields.py -a -r 16 file.elf
 
 ### Options
 
-Options are identical to the C version.
+```text
+-h, --help            Show help message
+-a, --all             Work with all fields (24 bytes total)
+-w, --write <data>    Write data (hex string)
+-x, --hex             Output in hex format (default)
+-b, --binary          Output in binary format
+-n, --no-modify       Don't modify file, just show what would be done
+```
 
-## Report
+## Research
 
 Somewhere in future

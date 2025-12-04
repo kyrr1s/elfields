@@ -72,8 +72,7 @@ elfields -b --pad file.elf
 ### Individual fields
 
 Use --fieldname for individual field operations:
-text
-
+```text
 --class           EI_CLASS (byte order) (1 byte)
 --data            EI_DATA (data encoding) (1 byte)
 --ident_version   EI_VERSION (ident version) (1 byte)
@@ -85,6 +84,7 @@ text
 --shentsize       e_shentsize (section header size) (2 bytes)
 --shnum           e_shnum (number of section headers) (2 bytes)
 --shstrndx        e_shstrndx (section header string table index) (2 bytes)
+```
 
 ## Python Implementation
 

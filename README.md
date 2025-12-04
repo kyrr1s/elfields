@@ -106,4 +106,4 @@ To get the correct hash for your executable file:
 
 ## Research
 
-Somewhere in future
+[Abusing ELF Header' forgotten fields](https://kyrr1s.github.io/posts/abusing-elf-header-forgotten-fields/)

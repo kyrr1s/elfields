@@ -41,8 +41,8 @@ python elfields.py -a -r 16 file.elf
 -h, --help            Show help message
 -a, --all             Work with all fields (24 bytes total)
 -w, --write <data>    Write data (hex string)
--x, --hex             Output in hex format (default)
--b, --binary          Output in binary format
+-t, --text            Output in text format (default)
+-x, --hex             Output in hex format
 -n, --no-modify       Don't modify file, just show what would be done
 ```
 

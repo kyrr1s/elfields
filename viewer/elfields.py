@@ -1,8 +1,8 @@
+#!/usr/bin/env python3
 import argparse
 import sys
 from dataclasses import dataclass
 from typing import Optional
-from elftools.elf.elffile import ELFFile
 
 TOTAL_FIELD_SIZE = 24
 
@@ -37,23 +37,22 @@ def hex_to_bin(hex_str: str) -> bytes:
     try:
         return bytes.fromhex(hex_str)
     except ValueError:
-        raise ValueError(f"Invalid hex string: {hex_str}")
-
-def print_simple_hex(data: bytes) -> None:
-    sys.stdout.buffer.write(data.hex().encode())
-
-def print_simple_binary(data: bytes) -> None:
-    sys.stdout.buffer.write(data)
+        return hex_str.encode('utf-8')
 
 def print_field_with_name(field_name: str, data: bytes, hex_output: bool) -> None:
     if hex_output:
         sys.stdout.buffer.write(f"{field_name}: {data.hex()}\n".encode())
     else:
-        sys.stdout.buffer.write(f"{field_name}: ".encode())
-        sys.stdout.buffer.write(data)
-        sys.stdout.buffer.write(b'\n')
+        try:
+            text = data.decode('utf-8', errors='strict')
+            if all(32 <= c < 127 for c in data):
+                sys.stdout.buffer.write(f"{field_name}: {text}\n".encode())
+            else:
+                sys.stdout.buffer.write(f"{field_name}: {data.hex()}\n".encode())
+        except (UnicodeDecodeError, ValueError):
+            sys.stdout.buffer.write(f"{field_name}: {data.hex()}\n".encode())
 
-def read_all_fields_simple(header_data: bytes, size: int, hex_output: bool) -> None:
+def read_all_fields_without_names(header_data: bytes, size: int, hex_output: bool) -> None:
     if size > TOTAL_FIELD_SIZE:
         raise ValueError(f"Requested size ({size}) exceeds total field size ({TOTAL_FIELD_SIZE})")
     
@@ -68,10 +67,20 @@ def read_all_fields_simple(header_data: bytes, size: int, hex_output: bool) -> N
         offset += to_copy
     
     if hex_output:
-        print_simple_hex(result)
+        sys.stdout.buffer.write(result.hex().encode())
         sys.stdout.buffer.write(b'\n')
     else:
-        print_simple_binary(result)
+        try:
+            text = result.decode('utf-8', errors='strict')
+            if all(32 <= c < 127 for c in result):
+                sys.stdout.buffer.write(text.encode())
+                sys.stdout.buffer.write(b'\n')
+            else:
+                sys.stdout.buffer.write(result.hex().encode())
+                sys.stdout.buffer.write(b'\n')
+        except (UnicodeDecodeError, ValueError):
+            sys.stdout.buffer.write(result.hex().encode())
+            sys.stdout.buffer.write(b'\n')
 
 def read_all_fields_with_names(header_data: bytes, size: int, hex_output: bool) -> None:
     if size > TOTAL_FIELD_SIZE:
@@ -95,10 +104,20 @@ def read_single_field_simple(header_data: bytes, field_name: str, hex_output: bo
     field_data = header_data[field.offset:field.offset + field.size]
     
     if hex_output:
-        print_simple_hex(field_data)
+        sys.stdout.buffer.write(field_data.hex().encode())
         sys.stdout.buffer.write(b'\n')
     else:
-        print_simple_binary(field_data)
+        try:
+            text = field_data.decode('utf-8', errors='strict')
+            if all(32 <= c < 127 for c in field_data):
+                sys.stdout.buffer.write(text.encode())
+                sys.stdout.buffer.write(b'\n')
+            else:
+                sys.stdout.buffer.write(field_data.hex().encode())
+                sys.stdout.buffer.write(b'\n')
+        except (UnicodeDecodeError, ValueError):
+            sys.stdout.buffer.write(field_data.hex().encode())
+            sys.stdout.buffer.write(b'\n')
 
 def read_single_field_with_name(header_data: bytes, field_name: str, hex_output: bool) -> None:
     field = find_field(field_name)
@@ -139,9 +158,9 @@ def write_single_field(header_data: bytes, field_name: str, write_data: bytes) -
 
 def read_elf_header(filename: str) -> bytes:
     with open(filename, 'rb') as f:
-        elf = ELFFile(f)
-        f.seek(0)
         header_data = f.read(64)
+        if len(header_data) >= 4 and header_data[:4] != b'\x7fELF':
+            raise ValueError("Not a valid ELF file")
         return header_data
 
 def write_elf_header(filename: str, header_data: bytes, modify: bool) -> None:
@@ -156,10 +175,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='ELF field manipulation tool')
     parser.add_argument('file', help='ELF file')
     parser.add_argument('-a', '--all', action='store_true', help='Work with all fields (24 bytes total)')
-    parser.add_argument('-w', '--write', metavar='DATA', help='Write data (hex string, e.g., deadbeef)')
+    parser.add_argument('-w', '--write', metavar='DATA', help='Write data (hex string or text, e.g., deadbeef or "some text")')
     parser.add_argument('-r', '--read', metavar='SIZE', type=int, help='Read data of specified size (for --all)')
-    parser.add_argument('-x', '--hex', action='store_true', default=True, help='Output in hex format (default)')
-    parser.add_argument('-b', '--binary', action='store_true', help='Output in binary format')
+    parser.add_argument('-x', '--hex', action='store_true', help='Output in hex format')
     parser.add_argument('-n', '--no-modify', action='store_true', help="Don't modify file, just show what would be done")
     parser.add_argument('-s', '--simple', action='store_true', help='Simple output (just data without field names)')
     
@@ -168,9 +186,6 @@ def main() -> None:
         field_group.add_argument(f'--{field.name}', action='store_true', help=field.description)
     
     args = parser.parse_args()
-    
-    if args.binary:
-        args.hex = False
     
     try:
         header_data = read_elf_header(args.file)
@@ -185,6 +200,7 @@ def main() -> None:
             raise ValueError("Cannot specify both --all and individual field")
         
         modify_file = not args.no_modify
+        hex_output = args.hex
         
         if args.all:
             if args.write:
@@ -194,9 +210,9 @@ def main() -> None:
             else:
                 size = args.read if args.read else TOTAL_FIELD_SIZE
                 if args.simple:
-                    read_all_fields_simple(header_data, size, args.hex)
+                    read_all_fields_without_names(header_data, size, hex_output)
                 else:
-                    read_all_fields_with_names(header_data, size, args.hex)
+                    read_all_fields_with_names(header_data, size, hex_output)
         elif field_name:
             if args.write:
                 write_data = hex_to_bin(args.write)
@@ -204,17 +220,17 @@ def main() -> None:
                 write_elf_header(args.file, new_header, modify_file)
             else:
                 if args.simple:
-                    read_single_field_simple(header_data, field_name, args.hex)
+                    read_single_field_simple(header_data, field_name, hex_output)
                 else:
-                    read_single_field_with_name(header_data, field_name, args.hex)
+                    read_single_field_with_name(header_data, field_name, hex_output)
         else:
             if args.write or args.read:
                 raise ValueError("Specify either --all or individual field")
             size = args.read if args.read else TOTAL_FIELD_SIZE
             if args.simple:
-                read_all_fields_simple(header_data, size, args.hex)
+                read_all_fields_without_names(header_data, size, hex_output)
             else:
-                read_all_fields_with_names(header_data, size, args.hex)
+                read_all_fields_with_names(header_data, size, hex_output)
             
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

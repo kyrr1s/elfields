@@ -1,8 +1,10 @@
 # ELF Field Manipulation Tool
 
+## Viewer
+
 A small script for modifying or extracting data from unused fields of ELF file headers.
 
-## Features
+### Features
 
 - Read/write individual ELF header fields
 - Bulk operations on all customizable fields (24 bytes total)
@@ -47,6 +49,60 @@ python elfields.py --hash=md5 file.elf
 -n, --no-modify       Don't modify file, just show what would be done
 -H, --hash            Show hash of the unused bytes
 ```
+
+## Checker
+
+A small library that provides function for verifying the integrity of an ELF file header unused fields by comparing the hash of specific fields with an expected value. Supports MD5, SHA1, SHA256 and SHA512 hashes.
+
+### Main Function
+
+```c
+#include "elfields.h"
+
+bool check_elf_fields(const char* hash_hex);
+```
+
+**Parameters:**
+- `hash_hex` - hash string in hexadecimal format
+
+**Return value:**
+- `true` - hash matches
+- `false` - hash doesn't match or an error occurred
+
+### Example
+
+```c
+#include "elfields.h"
+
+int main() {
+    // Check hash of the unused fields in ELF Header of the current executable file
+    if (check_elf_fields("d41d8cd98f00b204e9800998ecf8427e")) {
+        printf("Hello World\n");
+    } else {
+        printf("Integrity check failed\n");
+        return 1;
+    }
+    
+    return 0;
+}
+```
+
+## Compilation
+
+OpenSSL 3.0 or higher is required:
+
+```bash
+gcc -o program main.c -lssl -lcrypto
+```
+
+### Obtaining Hash for Verification
+
+To get the correct hash for your executable file:
+
+1. Compile the program without hash verification
+2. Use Viewer tool to compute hash of the specified unused fields
+3. Compute the hash and insert it into the `check_elf_fields()` call
+4. Recompile the program with the correct hash
 
 ## Research
 
